@@ -7,6 +7,7 @@ Plug 'nvim-treesitter/nvim-treesitter', {'branch': '0.5-compat', 'do': 'TSUpdate
 Plug 'neovim/nvim-lspconfig'
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-telescope/telescope.nvim'
+Plug 'numToStr/Comment.nvim'
 
 " Completion plugins
 Plug 'neovim/nvim-lspconfig'
@@ -17,6 +18,8 @@ Plug 'hrsh7th/cmp-cmdline'
 Plug 'hrsh7th/nvim-cmp'
 Plug 'hrsh7th/cmp-vsnip'
 Plug 'hrsh7th/vim-vsnip'
+
+Plug 'rust-lang/rust.vim'
 
 call plug#end()
 
@@ -129,7 +132,16 @@ lua <<EOF
   }
 EOF
 
-let mapleader=";"
+" Coment plugin setup
+lua <<EOF
+  require('Comment').setup()
+EOF
+
+" Rust plugin setup
+syntax enable
+filetype plugin indent on
+
+let g:rustfmt_autosave = 1
 
 " Find files using Telescope command-line sugar.
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
@@ -143,6 +155,6 @@ colorscheme tokyonight
 
 set number relativenumber
 
-set shell=powershell
+let mapleader=";"
 
 tnoremap <Esc> <C-\><C-n>
