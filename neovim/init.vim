@@ -129,8 +129,20 @@ lua <<EOF
   }
 EOF
 
+let mapleader=";"
+
+" Find files using Telescope command-line sugar.
+nnoremap <leader>ff <cmd>Telescope find_files<cr>
+nnoremap <leader>fg <cmd>Telescope live_grep<cr>
+nnoremap <leader>fb <cmd>Telescope buffers<cr>
+nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+
 let g:tokyonight_style = "night"
 let g:lightline = {'colorscheme': 'tokyonight'}
 colorscheme tokyonight
 
 set number relativenumber
+
+set shell=powershell
+
+tnoremap <Esc> <C-\><C-n>
