@@ -137,6 +137,8 @@ lua <<EOF
   require('Comment').setup()
 EOF
 
+let mapleader=";"
+
 " Rust plugin setup
 syntax enable
 filetype plugin indent on
@@ -155,6 +157,5 @@ colorscheme tokyonight
 
 set number relativenumber
 
-let mapleader=";"
 
 tnoremap <Esc> <C-\><C-n>
