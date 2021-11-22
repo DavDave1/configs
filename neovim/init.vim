@@ -19,7 +19,7 @@ Plug 'hrsh7th/nvim-cmp'
 Plug 'hrsh7th/cmp-vsnip'
 Plug 'hrsh7th/vim-vsnip'
 
-Plug 'rust-lang/rust.vim'
+Plug 'simrat39/rust-tools.nvim'
 
 call plug#end()
 
@@ -135,25 +135,17 @@ EOF
 " Coment plugin setup
 lua <<EOF
   require('Comment').setup()
+  
+  require('rust-tools').setup({})
+
+  require('telescope').setup {
+    defaults = {
+      file_ignore_patterns = { ".git" }
+    }
+  }
 EOF
 
 let mapleader=";"
-
-" Rust plugin setup
-syntax enable
-filetype plugin indent on
-
-let g:rustfmt_autosave = 1
-
-" Telescope setup
-
-lua <<EOF
-require('telescope').setup {
-  defaults = {
-    file_ignore_patterns = { ".git" }
-  }
-}
-EOF
 
 " Find files using Telescope command-line sugar.
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
@@ -161,11 +153,13 @@ nnoremap <leader>fg <cmd>Telescope live_grep<cr>
 nnoremap <leader>fb <cmd>Telescope buffers<cr>
 nnoremap <leader>fh <cmd>Telescope help_tags<cr>
 
+" Theme settings
 let g:tokyonight_style = "night"
 let g:lightline = {'colorscheme': 'tokyonight'}
 colorscheme tokyonight
 
 set number relativenumber
 
-
 tnoremap <Esc> <C-\><C-n>
+
+autocmd BufWritePre *.rs lua vim.lsp.buf.formatting_sync(nil, 1000)
