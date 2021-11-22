@@ -145,6 +145,16 @@ filetype plugin indent on
 
 let g:rustfmt_autosave = 1
 
+" Telescope setup
+
+lua <<EOF
+require('telescope').setup {
+  defaults = {
+    file_ignore_patterns = { ".git" }
+  }
+}
+EOF
+
 " Find files using Telescope command-line sugar.
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
 nnoremap <leader>fg <cmd>Telescope live_grep<cr>
