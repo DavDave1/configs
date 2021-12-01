@@ -3,7 +3,7 @@ call plug#begin()
 Plug 'folke/tokyonight.nvim', { 'branch': 'main'}
 Plug 'itchyny/lightline.vim'
 Plug 'folke/trouble.nvim'
-Plug 'nvim-treesitter/nvim-treesitter', {'branch': '0.5-compat', 'do': 'TSUpdate'}
+Plug 'nvim-treesitter/nvim-treesitter', {'do': 'TSUpdate'}
 Plug 'neovim/nvim-lspconfig'
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-telescope/telescope.nvim'
