@@ -21,7 +21,12 @@ Plug 'hrsh7th/vim-vsnip'
 
 Plug 'simrat39/rust-tools.nvim'
 
+Plug 'nvim-neorg/neorg'
+Plug 'nvim-neorg/neorg-telescope'
+
+
 call plug#end()
+
 
 " Configure lsp
 " https://github.com/neovim/nvim-lspconfig#rust_analyzer
@@ -105,6 +110,7 @@ lua <<EOF
       { name = 'vsnip' }, -- For vsnip users.
     }, {
       { name = 'buffer' },
+      { name = 'neorg'},
     })
   })
 
@@ -142,6 +148,72 @@ lua <<EOF
     defaults = {
       file_ignore_patterns = { ".git" }
     }
+  }
+EOF
+
+" Configure treesitter
+lua <<EOF
+local parser_configs = require('nvim-treesitter.parsers').get_parser_configs()
+
+parser_configs.norg = {
+    install_info = {
+        url = "https://github.com/nvim-neorg/tree-sitter-norg",
+        files = { "src/parser.c", "src/scanner.cc" },
+        branch = "main"
+    },
+}
+
+parser_configs.norg_meta = {
+    install_info = {
+        url = "https://github.com/nvim-neorg/tree-sitter-norg-meta",
+        files = { "src/parser.c" },
+        branch = "main"
+    },
+}
+
+parser_configs.norg_table = {
+    install_info = {
+        url = "https://github.com/nvim-neorg/tree-sitter-norg-table",
+        files = { "src/parser.c" },
+        branch = "main"
+    },
+}
+
+require('nvim-treesitter.configs').setup {
+    ensure_installed = { "norg", "norg_meta", "norg_table", "rust", "markdown" },
+    highlight = { -- Be sure to enable highlights if you haven't!
+        enable = true,
+    }
+}
+EOF
+
+" Neorg plugin setup
+lua <<EOF
+  require('neorg').setup {
+        -- Tell Neorg what modules to load
+        load = {
+            ["core.defaults"] = {}, -- Load all the default modules
+            ["core.norg.concealer"] = {}, -- Allows for use of icons
+	    ["core.keybinds"] = {
+		config = {
+		    default_keybinds = true,
+		    norg_leader = "<Leader>o"
+		}
+	    },
+            ["core.norg.dirman"] = { -- Manage your directories with Neorg
+                config = {
+                    workspaces = {
+                        work = "~/neorg"
+                    }
+                }
+            },
+            ["core.norg.completion"] = { 
+		config = {
+		    engine = "nvim-cmp"
+		}
+            },
+    	    ["core.integrations.telescope"] = {},
+        },
   }
 EOF
 
