@@ -23,6 +23,8 @@ scrolling:
 
 font:
   size: 11.0
+  normal:
+    family: FiraCode NF
 
 draw_bold_text_with_bright_colors: false
 
