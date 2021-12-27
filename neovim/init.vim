@@ -180,7 +180,7 @@ parser_configs.norg_table = {
 }
 
 require('nvim-treesitter.configs').setup {
-    ensure_installed = { "norg", "norg_meta", "norg_table", "rust", "markdown" },
+    ensure_installed = { "norg", "norg_meta", "norg_table", "rust" },
     highlight = { -- Be sure to enable highlights if you haven't!
         enable = true,
     }
