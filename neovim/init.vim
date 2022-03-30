@@ -231,6 +231,14 @@ nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k
 nnoremap <C-l> <C-w>l
 
+nnoremap <C-Insert> :tabnew<CR>
+nnoremap <C-Delete> :tabclose<CR>
+
+nnoremap th :tabfirst<CR>
+nnoremap tk :tabnext<CR>
+nnoremap tj :tabprev<CR>
+nnoremap tl :tablast<CR>
+
 " Theme settings
 let g:tokyonight_style = "night"
 let g:lightline = {'colorscheme': 'tokyonight'}
