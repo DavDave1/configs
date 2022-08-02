@@ -19,3 +19,6 @@ Copy-File -Src ($PSScriptRoot + "\..\alacritty\alacritty.yml") -Dst ($env:APPDAT
 
 Copy-File -Src ($PSScriptRoot + "\..\neovim\init.vim") -Dst ($env:LOCALAPPDATA + "\nvim\init.vim")
 
+Copy-File -Src ($PSScriptRoot + "\..\nushell\config.nu") -Dst ($env:APPDATA + "\nushell\config.nu")
+Copy-File -Src ($PSScriptRoot + "\..\nushell\env.nu") -Dst ($env:APPDATA + "\nushell\env.nu")
+
