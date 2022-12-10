@@ -1,0 +1,315 @@
+#+PROPERTY: header-args:emacs-lisp :tangle ~/.emacs.d/init.el :mkdirp yes
+#+title: DDav Emacs configuration
+
+* Installation
+
+Execute org-babel-tangle (C-c C-v t)
+
+#+begin_src emacs-lisp
+    (defun ddav/reload-config ()
+	 "Generate and reload config file"
+       (interactive)
+       (org-babel-tangle "~/.emacs/init.org")
+       (load user-init-file))
+#+End_src
+
+
+* Package manager setup
+
+#+begin_src emacs-lisp
+  (require 'package)
+
+  (setq package-archives
+	'(("melpa" . "https://raw.githubusercontent.com/d12frosted/elpa-mirror/master/melpa/")
+	  ("org"   . "https://raw.githubusercontent.com/d12frosted/elpa-mirror/master/org/")
+	  ("gnu"   . "https://raw.githubusercontent.com/d12frosted/elpa-mirror/master/gnu/")))
+
+  (package-initialize)
+
+  (unless package-archive-contents (package-refresh-contents))
+
+  ;; Install package manager if not present
+  (unless (package-installed-p 'use-package)
+    (package-install 'use-package))
+
+  (require 'use-package)
+  (setq use-package-always-ensure t)
+#+end_src
+
+
+* Enable evil mode
+
+#+begin_src emacs-lisp
+  (defun ddav/evil-hook ()
+    (dolist (mode '(custom-mode
+		    eshell-mode
+		    git-rebase-mode
+		    erc-mode
+		    term-mode))
+      (add-to-list 'evil-emacs-state-modes mode)))
+  
+  (use-package evil
+    :init
+    (setq evil-want-integration t)
+    (setq evil-want-keybinding nil)
+    (setq evil-want-C-u-srcoll t)
+    (setq evil-want-C-i-jump nil)
+    (evil-mode 1)
+    :hook (evil-mode . ddav/evil-hook)
+    :config
+    (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
+    (evil-global-set-key 'motion "j" 'evil-next-visual-line)
+    (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
+    (evil-set-initial-state 'messages-bgger-mode 'normal)
+    (evil-set-initial-state 'dashboard-mode 'normal))
+
+  (use-package evil-collection
+    :after evil
+    :config
+    (evil-collection-init))
+#+end_src
+
+
+* UI Configuration
+
+Remove all menus and bars, for a minimalistic look.
+
+#+begin_src emacs-lisp
+  (setq inhibit-startup-message t)
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1)
+  (tool-bar-mode -1)
+  (tooltip-mode -1)
+#+end_src
+
+Spacing between panels is defined with:
+
+#+begin_src emacs-lisp
+  (set-fringe-mode 10)
+#+end_src
+
+
+** Enable relative line numbers
+
+#+begin_src emacs-lisp
+  (column-number-mode)
+  (global-display-line-numbers-mode t)
+  (setq display-line-numbers-type 'relative)
+#+end_src
+
+Font must be set before theme.
+
+TODO check other fonts
+
+#+begin_src emacs-lisp
+  (set-face-attribute 'default nil :font "FiraCode NF")
+#+end_src
+
+
+** Theme
+
+Borrow theme and modeline from Doom since they work well together
+
+#+begin_src emacs-lisp
+(use-package doom-themes
+    :config
+    (load-theme 'doom-tomorrow-night t)
+    (doom-themes-visual-bell-config)
+    (doom-themes-org-config))
+
+(use-package doom-modeline
+    :init (doom-modeline-mode 1)
+    :custom (doom-modeline-height 40))
+#+end_src
+
+All the icons is required by doom theme and modeline
+
+#+begin_src emacs-lisp
+  (use-package all-the-icons)
+#+end_src
+
+Colored parens
+
+#+begin_src emacs-lisp
+    (use-package rainbow-delimiters
+      :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+
+* Keybindings
+
+Define global keybinding to remap exit function to =ESC=
+
+#+begin_src emacs-lisp
+  (global-set-key (kbd "<escape>") 'keyboard-quit)
+#+end_src
+
+
+** General
+
+General helps defining custom bindings prefixed by =SPC= leader, like spacemacs.
+
+TODO: lookup spacemacs or doom emacs bindings for some inspiration
+
+#+begin_src emacs-lisp
+  (use-package general
+    :after evil
+    :config
+    (general-evil-setup t)
+    (general-create-definer ddav/leader-keys
+      :keymaps '(normal visual emacs)
+      :prefix "SPC"
+      :global-prefix "C-SPC")
+
+    (ddav/leader-keys
+      "h r r" '(ddav/reload-config :which-key "reload configuration")
+      "p" '(projectile-command-map :which-key "projectile commands")))
+#+end_src
+
+
+Which key gives description for keybindings, very useful for documenting keybindings
+
+#+begin_src emacs-lisp
+  (use-package which-key
+    :init (which-key-mode)
+    :diminish
+    :config (setq which-key-idle-delay 0.3))
+#+end_src
+
+
+* Completion framework
+
+Build completion framework from modular packages
+
+
+** Vertico
+
+Minimalistic completion UI based on default completion system.
+
+https://github.com/minad/vertico
+
+#+begin_src emacs-lisp
+  (use-package vertico
+    :init (vertico-mode))
+#+end_src
+
+Also save history
+
+#+begin_src emacs-lisp
+  (use-package savehist
+    :init (savehist-mode))
+#+end_src
+
+
+** Marginalia
+
+Gives description for commands, directories, etc in minibuffer
+
+https://github.com/minad/marginalia
+
+#+begin_src emacs-lisp
+  (use-package marginalia
+    :init (marginalia-mode))
+#+end_src
+
+
+** Consult
+
+Enhanced completion
+
+https://github.com/minad/consult
+
+#+begin_src emacs-lisp
+  (use-package consult
+    :init 
+    :bind
+    ("C-x b" . consult-buffer)) ; replaces switch-to-buffer
+#+end_src
+
+
+** Orderless
+
+https://github.com/oantolin/orderless
+
+Orderless provides unordered completion, i.e. you dont have to type stuff in the exact order
+to find it. This is very useful for searching commands, but more importantly for projectile
+file finder.
+
+#+begin_src emacs-lisp
+  (use-package orderless
+    :custom
+    (completion-styles '(orderless basic))
+    (completion-category-overrides '((file (styles basic partial-completion)))))
+#+end_src
+
+* Helpers
+
+** Helpful
+
+https://github.com/Wilfred/helpful
+
+Enhanced help buffer remap help bindings to use helpful
+
+
+#+begin_src emacs-lisp
+  (use-package helpful
+    :bind
+    (([remap describe-function] . helpful-callable)
+     ([remap describe-command] . helpful-command)
+     ([remap describe-variable] . helpful-variable)
+     ([remap describe-key] . helpful-key)))
+#+end_src
+
+
+** Hydra
+
+https://github.com/abo-abo/hydra
+
+Helper package that allows define repeatable functions
+
+#+begin_src emacs-lisp
+  (use-package hydra)
+#+end_src
+
+Here is an helper function to resize an open window split:
+
+#+begin_src emacs-lisp
+  (defhydra hydra-window-resize (:timeout 4)
+    "resize window split"
+    ("j" evil-window-increase-height "height++")
+    ("k" evil-window-decrease-height "height--")
+    ("h" evil-window-decrease-width "width--")
+    ("l" evil-window-increase-width "width++")
+    ("f" nil "finish" :exit t))
+#+end_src
+
+
+** Projectile
+
+https://github.com/bbatsov/projectile
+
+Projectile helps handling projects and searching files within a project
+
+#+begin_src emacs-lisp
+  (use-package projectile
+    :init
+    (projectile-mode 1)
+    :bind
+    ("C-c p" . 'projectile-command-map))
+#+end_src
+
+
+** Dashboard
+
+https://github.com/emacs-dashboard/emacs-dashboard
+
+Provide dashboard to navigate recent files and projects. Works great in combination with projectile.
+
+#+begin_src emacs-lisp
+  (use-package dashboard
+    :config
+    (setq dashboard-set-heading-icons t)
+    (setq dashboard-set-file-icons t)
+    (setq dashboard-project-backend 'projectile)
+    (dashboard-setup-startup-hook))
+#+end_src
