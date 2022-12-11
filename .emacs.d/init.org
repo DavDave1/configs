@@ -292,10 +292,13 @@ Projectile helps handling projects and searching files within a project
 
 #+begin_src emacs-lisp
   (use-package projectile
-    :init
-    (projectile-mode 1)
+    :diminish
+    :config
+    (projectile-mode)
     :bind
-    ("C-c p" . 'projectile-command-map))
+    ("C-c p" . 'projectile-command-map)
+    :init
+    (setq projectile-switch-project-action #'projectile-dired))
 #+end_src
 
 
@@ -312,4 +315,34 @@ Provide dashboard to navigate recent files and projects. Works great in combinat
     (setq dashboard-set-file-icons t)
     (setq dashboard-project-backend 'projectile)
     (dashboard-setup-startup-hook))
+#+end_src
+
+* Programming
+
+** Eglot
+
+Eglot lsp client setup.
+
+https://github.com/joaotavora/eglot
+
+TODO: this can e removed when emacs 29 releases, since eglot will be incuded
+
+#+begin_src emacs-lisp
+  (use-package eglot
+    :hook
+    ((cpp-mode . eglot-ensure)
+     (rust-mode . eglot-ensure))
+    :config
+    (add-to-list 'eglot-server-programs
+		 '(rust-mode . ("rust-analyzer"))
+		 '(cpp-mode . ("clangd"))))
+#+end_src
+
+** Magit
+
+#+begin_src emacs-lisp
+    (use-package magit
+   ;   :custom
+   ;   (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
+    )
 #+end_src
