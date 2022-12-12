@@ -1,18 +1,29 @@
 #+PROPERTY: header-args:emacs-lisp :tangle ~/.emacs.d/init.el :mkdirp yes
-#+title: DDav Emacs configuration
+#+TITLE: DDav Emacs configuration
 
-* Installation
+* Bootstrap
 
-Execute org-babel-tangle (C-c C-v t)
+Execute org-babel-tangle (C-c C-v t) to generate =init.el= inside user directory.
 
 #+begin_src emacs-lisp
     (defun ddav/reload-config ()
 	 "Generate and reload config file"
        (interactive)
-       (org-babel-tangle "~/.emacs/init.org")
+       ;(org-babel-tangle "~/.emacs/init.org")
        (load user-init-file))
 #+End_src
 
+Lets disable autosave, because it is annoying having autosave files generated everywhere.
+
+#+begin_src emacs-lisp
+  (setq auto-save-default nil)
+#+end_src
+
+Have backup in single directory. Again annoying to have backup files scattered in work folders.
+
+#+begin_src emacs-lisp
+  (setq backup-directory-alist '(("" . "~/.emacs.d/backups")))
+#+end_src
 
 * Package manager setup
 
@@ -35,7 +46,6 @@ Execute org-babel-tangle (C-c C-v t)
   (require 'use-package)
   (setq use-package-always-ensure t)
 #+end_src
-
 
 * Enable evil mode
 
@@ -69,7 +79,6 @@ Execute org-babel-tangle (C-c C-v t)
     (evil-collection-init))
 #+end_src
 
-
 * UI Configuration
 
 Remove all menus and bars, for a minimalistic look.
@@ -89,22 +98,31 @@ Spacing between panels is defined with:
 #+end_src
 
 
-** Enable relative line numbers
+** Line numbers
+
+Enable relative line numbers only for prog modes through hook.
 
 #+begin_src emacs-lisp
   (column-number-mode)
-  (global-display-line-numbers-mode t)
   (setq display-line-numbers-type 'relative)
+
+  (defun ddav/prog-mode-hook ()
+    (display-line-numbers-mode t))
+
+  (add-hook 'prog-mode-hook #'ddav/prog-mode-hook)
 #+end_src
+
+** Font
 
 Font must be set before theme.
 
-TODO check other fonts
-
 #+begin_src emacs-lisp
   (set-face-attribute 'default nil :font "FiraCode NF")
-#+end_src
 
+  (set-face-attribute 'fixed-pitch nil :font "FiraCode NF")
+
+  (set-face-attribute 'variable-pitch nil :font "Source Sans Pro" :weight 'regular :height 120)
+#+end_src
 
 ** Theme
 
@@ -135,6 +153,23 @@ Colored parens
       :hook (prog-mode . rainbow-delimiters-mode))
 #+end_src
 
+** Tree view
+
+Add tree view powered by treemacs package https://github.com/Alexander-Miller/treemacs
+
+#+begin_src emacs-lisp
+  (use-package treemacs
+  :defer t)
+
+  (use-package treemacs-evil
+    :after (treemacs evil))
+
+  (use-package treemacs-projectile
+    :after (treemacs projectile))
+
+  (use-package treemacs-magit
+    :after (treemacs magit))
+#+end_src
 
 * Keybindings
 
@@ -162,10 +197,14 @@ TODO: lookup spacemacs or doom emacs bindings for some inspiration
       :global-prefix "C-SPC")
 
     (ddav/leader-keys
+      "d" '(dashboard-mode :which-key "dashboard")
+      "g" '(magit-status :which-key "magit")
       "h r r" '(ddav/reload-config :which-key "reload configuration")
-      "p" '(projectile-command-map :which-key "projectile commands")))
-#+end_src
+      "p" '(projectile-command-map :which-key "projectile")
+      "t" '(treemacs :which-key "toggle tree")))
+      #+end_src
 
+** Which key
 
 Which key gives description for keybindings, very useful for documenting keybindings
 
@@ -176,11 +215,9 @@ Which key gives description for keybindings, very useful for documenting keybind
     :config (setq which-key-idle-delay 0.3))
 #+end_src
 
-
 * Completion framework
 
 Build completion framework from modular packages
-
 
 ** Vertico
 
@@ -200,7 +237,6 @@ Also save history
     :init (savehist-mode))
 #+end_src
 
-
 ** Marginalia
 
 Gives description for commands, directories, etc in minibuffer
@@ -211,7 +247,6 @@ https://github.com/minad/marginalia
   (use-package marginalia
     :init (marginalia-mode))
 #+end_src
-
 
 ** Consult
 
@@ -225,7 +260,6 @@ https://github.com/minad/consult
     :bind
     ("C-x b" . consult-buffer)) ; replaces switch-to-buffer
 #+end_src
-
 
 ** Orderless
 
@@ -243,7 +277,6 @@ file finder.
 #+end_src
 
 * Helpers
-
 ** Helpful
 
 https://github.com/Wilfred/helpful
@@ -259,7 +292,6 @@ Enhanced help buffer remap help bindings to use helpful
      ([remap describe-variable] . helpful-variable)
      ([remap describe-key] . helpful-key)))
 #+end_src
-
 
 ** Hydra
 
@@ -283,7 +315,6 @@ Here is an helper function to resize an open window split:
     ("f" nil "finish" :exit t))
 #+end_src
 
-
 ** Projectile
 
 https://github.com/bbatsov/projectile
@@ -301,7 +332,6 @@ Projectile helps handling projects and searching files within a project
     (setq projectile-switch-project-action #'projectile-dired))
 #+end_src
 
-
 ** Dashboard
 
 https://github.com/emacs-dashboard/emacs-dashboard
@@ -318,7 +348,6 @@ Provide dashboard to navigate recent files and projects. Works great in combinat
 #+end_src
 
 * Programming
-
 ** Eglot
 
 Eglot lsp client setup.
@@ -330,19 +359,95 @@ TODO: this can e removed when emacs 29 releases, since eglot will be incuded
 #+begin_src emacs-lisp
   (use-package eglot
     :hook
-    ((cpp-mode . eglot-ensure)
+    ((c++-mode . eglot-ensure)
      (rust-mode . eglot-ensure))
     :config
     (add-to-list 'eglot-server-programs
-		 '(rust-mode . ("rust-analyzer"))
-		 '(cpp-mode . ("clangd"))))
+                 '(rust-mode . ("rust-analyzer"))
+                 '(c++-mode . ("clangd"))))
 #+end_src
 
 ** Magit
 
+Setup magit. Only customization here is to display diff in a different buffer.
+
 #+begin_src emacs-lisp
-    (use-package magit
-   ;   :custom
-   ;   (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
-    )
+  (use-package magit
+    :custom
+    (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
 #+end_src
+
+* Org mode
+
+Let's customize org mode:
+
+Here we define the hook to enable some configs when =org-mode= starts up.
+
+=org-indent-mode= enables indentation of headings.
+
+=visual-line-mode= enables word wrap.
+
+=variable-pitch-mode= enables variable pitch font for =org-mode=. For exclusions see [[Font]] section.
+
+#+begin_src emacs-lisp
+  (defun ddav/org-mode-setup ()
+    (org-indent-mode)
+    (visual-line-mode 1)
+    (auto-fill-mode 0)
+    (variable-pitch-mode 1))
+#+end_src
+
+Main =org-mode= configuration through =use-package=
+
+#+begin_src emacs-lisp
+  (use-package org
+    :hook (org-mode . ddav/org-mode-setup)
+    :config
+    (dolist (face '((org-level-1 . 1.4)
+                    (org-level-2 . 1.2)
+                    (org-level-3 . 1.1)
+                    (org-level-4 . 1.05)
+                    (org-level-5 . 1.0)
+                    (org-level-6 . 1.0)
+                    (org-level-7 . 1.0)
+                    (org-level-8 . 1.0)))
+      (set-face-attribute (car face) nil :font "Source Sans Pro" :weight 'regular :height (cdr face)))
+
+
+    (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+    (set-face-attribute 'org-code nil :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-table nil :inherit '(shadow fixed-pitch))
+                                          ; (set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))
+    (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
+
+    :custom
+    (org-ellipsis " ◂"))
+
+  (use-package org-bullets
+    :after org
+    :hook (org-mode . org-bullets-mode))
+#+end_src
+
+Configure variable pitch font size for org mode headings:
+
+Set fixed font for some of the org mode types
+
+** Visual fill mode
+
+This package adds padding on the left and right of buffers in =org-mode=. This makes org mode look more like a document editor.
+
+#+begin_src emacs-lisp
+  (defun ddav/org-mode-visual-fill ()
+    (setq visual-fill-column-width 120
+          visual-fill-column-center-text t)
+    (visual-fill-column-mode 1))
+
+  (use-package visual-fill-column
+    :defer t
+    :hook (org-mode . ddav/org-mode-visual-fill))
+#+end_src
+
+
