@@ -1,17 +1,28 @@
-#+PROPERTY: header-args:emacs-lisp :tangle ~/.emacs.d/init.el :mkdirp yes
 #+TITLE: DDav Emacs configuration
+#+PROPERTY: header-args:emacs-lisp :tangle ~/.emacs.d/init.el :mkdirp yes
 
 * Bootstrap
 
-Execute org-babel-tangle (C-c C-v t) to generate =init.el= inside user directory.
+On *first install* execute org-babel-tangle (C-c C-v t) to generate =init.el= inside user directory.
+
+Add hook to automatically tangle of config file on save.
 
 #+begin_src emacs-lisp
-    (defun ddav/reload-config ()
-	 "Generate and reload config file"
-       (interactive)
-       ;(org-babel-tangle "~/.emacs/init.org")
-       (load user-init-file))
-#+End_src
+  (defun ddav/org-babel-tangle-config ()
+    (when (string-equal (f-filename buffer-file-name) "init.org")
+      (org-babel-tangle)))
+
+  (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'ddav/org-babel-tangle-config)))
+#+end_src
+
+Define reload config function for easy testing of changes in =init.org=
+
+#+begin_src emacs-lisp
+  (defun ddav/reload-config ()
+    "Reload config file"
+    (interactive)
+    (load user-init-file))
+#+end_src
 
 Lets disable autosave, because it is annoying having autosave files generated everywhere.
 
@@ -31,9 +42,9 @@ Have backup in single directory. Again annoying to have backup files scattered i
   (require 'package)
 
   (setq package-archives
-	'(("melpa" . "https://raw.githubusercontent.com/d12frosted/elpa-mirror/master/melpa/")
-	  ("org"   . "https://raw.githubusercontent.com/d12frosted/elpa-mirror/master/org/")
-	  ("gnu"   . "https://raw.githubusercontent.com/d12frosted/elpa-mirror/master/gnu/")))
+        '(("melpa" . "https://raw.githubusercontent.com/d12frosted/elpa-mirror/master/melpa/")
+          ("org"   . "https://raw.githubusercontent.com/d12frosted/elpa-mirror/master/org/")
+          ("gnu"   . "https://raw.githubusercontent.com/d12frosted/elpa-mirror/master/gnu/")))
 
   (package-initialize)
 
@@ -52,12 +63,12 @@ Have backup in single directory. Again annoying to have backup files scattered i
 #+begin_src emacs-lisp
   (defun ddav/evil-hook ()
     (dolist (mode '(custom-mode
-		    eshell-mode
-		    git-rebase-mode
-		    erc-mode
-		    term-mode))
+                    eshell-mode
+                    git-rebase-mode
+                    erc-mode
+                    term-mode))
       (add-to-list 'evil-emacs-state-modes mode)))
-  
+
   (use-package evil
     :init
     (setq evil-want-integration t)
@@ -129,13 +140,13 @@ Font must be set before theme.
 Borrow theme and modeline from Doom since they work well together
 
 #+begin_src emacs-lisp
-(use-package doom-themes
+  (use-package doom-themes
     :config
     (load-theme 'doom-tomorrow-night t)
     (doom-themes-visual-bell-config)
     (doom-themes-org-config))
 
-(use-package doom-modeline
+  (use-package doom-modeline
     :init (doom-modeline-mode 1)
     :custom (doom-modeline-height 40))
 #+end_src
@@ -149,8 +160,8 @@ All the icons is required by doom theme and modeline
 Colored parens
 
 #+begin_src emacs-lisp
-    (use-package rainbow-delimiters
-      :hook (prog-mode . rainbow-delimiters-mode))
+  (use-package rainbow-delimiters
+    :hook (prog-mode . rainbow-delimiters-mode))
 #+end_src
 
 ** Tree view
@@ -159,7 +170,10 @@ Add tree view powered by treemacs package https://github.com/Alexander-Miller/tr
 
 #+begin_src emacs-lisp
   (use-package treemacs
-  :defer t)
+    :defer t
+    :config
+    (progn
+      (setq treemacs-user-mode-line-format 'none)))
 
   (use-package treemacs-evil
     :after (treemacs evil))
@@ -200,6 +214,9 @@ TODO: lookup spacemacs or doom emacs bindings for some inspiration
       "d" '(dashboard-mode :which-key "dashboard")
       "g" '(magit-status :which-key "magit")
       "h r r" '(ddav/reload-config :which-key "reload configuration")
+      "n" '(nil :which-key "org-roam")
+      "n f" '(org-roam-node-find :which-key "node find")
+      "n i" '(org-roam-node-insert :which-key "node insert")
       "p" '(projectile-command-map :which-key "projectile")
       "t" '(treemacs :which-key "toggle tree")))
       #+end_src
@@ -274,6 +291,19 @@ file finder.
     :custom
     (completion-styles '(orderless basic))
     (completion-category-overrides '((file (styles basic partial-completion)))))
+#+end_src
+
+** Corfu
+
+Enhance completion at point with corfu package https://github.com/minad/corfu
+
+#+begin_src emacs-lisp
+  (use-package corfu
+    :init
+    (global-corfu-mode)
+    :custom
+    (corfu-auto t)
+    (corfu-quit-no-match 'separator))
 #+end_src
 
 * Helpers
@@ -376,7 +406,15 @@ Setup magit. Only customization here is to display diff in a different buffer.
     :custom
     (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
 #+end_src
+** Yaml
 
+Add yaml support through =yaml-mode= package.
+
+#+begin_src emacs-lisp
+  (use-package yaml-mode
+    :config
+    (add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode)))
+#+end_src
 * Org mode
 
 Let's customize org mode:
@@ -400,40 +438,63 @@ Here we define the hook to enable some configs when =org-mode= starts up.
 Main =org-mode= configuration through =use-package=
 
 #+begin_src emacs-lisp
-  (use-package org
-    :hook (org-mode . ddav/org-mode-setup)
-    :config
-    (dolist (face '((org-level-1 . 1.4)
-                    (org-level-2 . 1.2)
-                    (org-level-3 . 1.1)
-                    (org-level-4 . 1.05)
-                    (org-level-5 . 1.0)
-                    (org-level-6 . 1.0)
-                    (org-level-7 . 1.0)
-                    (org-level-8 . 1.0)))
-      (set-face-attribute (car face) nil :font "Source Sans Pro" :weight 'regular :height (cdr face)))
+    (use-package org
+      :hook (org-mode . ddav/org-mode-setup)
+      :config
+      (dolist (face '((org-level-1 . 1.4)
+                      (org-level-2 . 1.2)
+                      (org-level-3 . 1.1)
+                      (org-level-4 . 1.05)
+                      (org-level-5 . 1.0)
+                      (org-level-6 . 1.0)
+                      (org-level-7 . 1.0)
+                      (org-level-8 . 1.0)))
+        (set-face-attribute (car face) nil :font "Source Sans Pro" :weight 'regular :height (cdr face)))
 
 
-    (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
-    (set-face-attribute 'org-code nil :inherit '(shadow fixed-pitch))
-    (set-face-attribute 'org-table nil :inherit '(shadow fixed-pitch))
-                                          ; (set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))
-    (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
-    (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
-    (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
-    (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
+      (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+      (set-face-attribute 'org-code nil :inherit '(shadow fixed-pitch))
+      (set-face-attribute 'org-table nil :inherit '(shadow fixed-pitch))
+                                            ; (set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))
+      (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+      (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+      (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+      (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
 
-    :custom
-    (org-ellipsis " ◂"))
+      :custom
+      (org-ellipsis " ◂")
+      (org-hide-emphasis-markers t))
+#+end_src
 
+Nicer heading bullets:
+
+#+begin_src emacs-lisp
   (use-package org-bullets
     :after org
     :hook (org-mode . org-bullets-mode))
 #+end_src
 
-Configure variable pitch font size for org mode headings:
+** Org appear
 
-Set fixed font for some of the org mode types
+Hide markers in org mode and visualize them only when in evil edit mode:
+
+#+begin_src emacs-lisp
+  (use-package org-appear
+    :after org
+    :hook ((org-mode . org-appear-mode)
+	   (org-mode . (lambda ()
+			 (add-hook 'evil-insert-state-entry-hook
+				   #'org-appear-manual-start
+				   nil
+				   t)
+			 (add-hook 'evil-insert-state-exit-hook
+				   #'org-appear-manual-stop
+				   nil
+				   t)
+			)))
+    :custom
+    (org-appear-trigger 'manual))
+#+end_src
 
 ** Visual fill mode
 
@@ -450,4 +511,19 @@ This package adds padding on the left and right of buffers in =org-mode=. This m
     :hook (org-mode . ddav/org-mode-visual-fill))
 #+end_src
 
+**  Org roam
+
+Org roam is a package that implements Zettlekasten note taking method.
+
+#+begin_src emacs-lisp
+  (use-package org-roam
+    :custom
+    (org-roam-directory "~/org/zk")
+    :bind
+    (("C-c n l" . org-roam-buffer-toggle)
+    ("C-c n f" . org-roam-node-find)
+    ("C-c n i" . org-roam-node-insert))
+    :config
+    (org-roam-setup))
+#+end_src
 
