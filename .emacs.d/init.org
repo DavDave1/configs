@@ -24,19 +24,9 @@ Define reload config function for easy testing of changes in =init.org=
     (load user-init-file))
 #+end_src
 
-Lets disable autosave, because it is annoying having autosave files generated everywhere.
-
-#+begin_src emacs-lisp
-  (setq auto-save-default nil)
-#+end_src
-
-Have backup in single directory. Again annoying to have backup files scattered in work folders.
-
-#+begin_src emacs-lisp
-  (setq backup-directory-alist '(("" . "~/.emacs.d/backups")))
-#+end_src
-
 * Package manager setup
+
+Setup repositories and install =use-package=
 
 #+begin_src emacs-lisp
   (require 'package)
@@ -56,6 +46,41 @@ Have backup in single directory. Again annoying to have backup files scattered i
 
   (require 'use-package)
   (setq use-package-always-ensure t)
+#+end_src
+
+Add auto update package
+
+#+begin_src emacs-lisp
+  (use-package auto-package-update)
+#+end_src
+
+* Emacs general config
+
+Use =no-littering= package to keep emacs folder clean
+
+#+begin_src emacs-lisp
+;;  (use-package no-littering)
+
+;;  (setq auto-save-file-name-transforms
+;;        '((".*" '(no-littering-expand-var-file-name "auto-save/") t)))
+#+end_src
+
+Lets disable autosave, because it is annoying having autosave files generated everywhere.
+
+#+begin_src emacs-lisp
+  (setq auto-save-default nil)
+#+end_src
+
+Have backup in single directory. Again annoying to have backup files scattered in work folders.
+
+#+begin_src emacs-lisp
+  (setq backup-directory-alist '(("" . "~/.emacs.d/backups")))
+#+end_src
+
+Increase GC collector memory size, to reduce number of collections during emacs startup and usage:
+
+#+begin_src emacs-lisp
+  (setq gc-const-threshold (* 2 1000 1000)) ; 2 MB
 #+end_src
 
 * Enable evil mode
@@ -107,7 +132,6 @@ Spacing between panels is defined with:
 #+begin_src emacs-lisp
   (set-fringe-mode 10)
 #+end_src
-
 
 ** Line numbers
 
@@ -193,7 +217,6 @@ Define global keybinding to remap exit function to =ESC=
   (global-set-key (kbd "<escape>") 'keyboard-quit)
 #+end_src
 
-
 ** General
 
 General helps defining custom bindings prefixed by =SPC= leader, like spacemacs.
@@ -211,12 +234,19 @@ TODO: lookup spacemacs or doom emacs bindings for some inspiration
       :global-prefix "C-SPC")
 
     (ddav/leader-keys
-      "d" '(dashboard-mode :which-key "dashboard")
+      "b" '(nil :which-key "buffer")
+      "b b" '(consult-buffer :which-key "list buffers")
+      "b l" '(list-buffers :which-key "list buffers")
+      "b k" '(kill-buffer :which-key "kill buffer")
+      "d" '(dired :which-key "dired")
       "g" '(magit-status :which-key "magit")
-      "h r r" '(ddav/reload-config :which-key "reload configuration")
+      "h r" '(ddav/reload-config :which-key "reload configuration")
+      "h u" '(auto-package-update-now :which-key "update packages")
       "n" '(nil :which-key "org-roam")
+      "n d" '(org-roam-dailies-map :which-key "dailies")
       "n f" '(org-roam-node-find :which-key "node find")
       "n i" '(org-roam-node-insert :which-key "node insert")
+      "n l" '(org-roam-buffer-toggle :which-key "backlinks")
       "p" '(projectile-command-map :which-key "projectile")
       "t" '(treemacs :which-key "toggle tree")))
       #+end_src
@@ -397,12 +427,23 @@ TODO: this can e removed when emacs 29 releases, since eglot will be incuded
                  '(c++-mode . ("clangd"))))
 #+end_src
 
+** Flycheck
+
+Replace builtin flymake with flycheck errors reporter, which is more customizable and shows
+automatically errors info.
+
+#+begin_src emacs-lisp
+  (use-package flycheck
+    :init (global-flycheck-mode))
+#+end_src
+
 ** Magit
 
 Setup magit. Only customization here is to display diff in a different buffer.
 
 #+begin_src emacs-lisp
   (use-package magit
+    :commands magit-status
     :custom
     (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
 #+end_src
@@ -415,6 +456,18 @@ Add yaml support through =yaml-mode= package.
     :config
     (add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode)))
 #+end_src
+
+** Cmake
+
+Add cmake support
+
+#+begin_src emacs-lisp
+  (use-package cmake-mode
+    :config
+    (add-to-list 'auto-mode-alist '("CMakeLists\\.txt\\'" . cmake-mode))
+    (add-to-list 'auto-mode-alist '("\\.cmake\\'" . cmake-mode)))
+#+end_src
+
 * Org mode
 
 Let's customize org mode:
@@ -481,19 +534,10 @@ Hide markers in org mode and visualize them only when in evil edit mode:
 #+begin_src emacs-lisp
   (use-package org-appear
     :after org
-    :hook ((org-mode . org-appear-mode)
-	   (org-mode . (lambda ()
-			 (add-hook 'evil-insert-state-entry-hook
-				   #'org-appear-manual-start
-				   nil
-				   t)
-			 (add-hook 'evil-insert-state-exit-hook
-				   #'org-appear-manual-stop
-				   nil
-				   t)
-			)))
+    :hook (org-mode . org-appear-mode)
     :custom
-    (org-appear-trigger 'manual))
+    (org-appear-trigger 'always)
+    (org-appear-autolinks t))
 #+end_src
 
 ** Visual fill mode
@@ -517,13 +561,51 @@ Org roam is a package that implements Zettlekasten note taking method.
 
 #+begin_src emacs-lisp
   (use-package org-roam
-    :custom
-    (org-roam-directory "~/org/zk")
     :bind
     (("C-c n l" . org-roam-buffer-toggle)
     ("C-c n f" . org-roam-node-find)
     ("C-c n i" . org-roam-node-insert))
+    :bind-keymap
+    ("C-c n d". org-roam-dailies-map)
     :config
-    (org-roam-setup))
+    (org-roam-setup)
+    (org-roam-db-autosync-mode)
+    (require 'org-roam-dailies) ; Ensure dailies keymap is available
+    :custom
+    (org-roam-directory "~/org/zk")
+    (org-roam-dailies-directory "../journal") ; relative to org-roam-directory
+    (org-roam-capture-templates
+     '(("d" "default" plain
+        "%?"
+        :if-new (file+head "%<%Y%m%d%h%m%S>-${slug}.org" "#+title: ${title}\n")
+        :unnarrowed t)
+       ("b" "BCP21" plain
+        "%?"
+        :if-new (file+head "%<%Y%m%d%h%m%S>-${slug}.org" "#+title: ${title}\n#+filetags: work bcp21")
+        :unnarrowed t))))
 #+end_src
 
+
+* File management
+
+Configure and enhance =dired=
+
+#+begin_src emacs-lisp
+  (use-package dired
+    :ensure nil ; make sure use-package does not attempt to install
+    :commands (dired dired-jump)
+    :bind (("C-x C-j". dired-jump))
+    :config
+
+    (evil-collection-define-key 'normal 'dired-mode-map
+      "h" 'dired-single-up-directory
+      "l" 'dired-single-buffer)
+    :custom
+    (dired-listing-switches "-agho --group-directories-first")
+    (delete-by-moving-to-trash t))
+
+  (use-package dired-single) ; single buffer for dired
+
+  (use-package all-the-icons-dired
+    :hook (dired-mode . all-the-icons-dired-mode))
+#+end_src
