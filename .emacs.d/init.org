@@ -234,12 +234,17 @@ TODO: lookup spacemacs or doom emacs bindings for some inspiration
       :global-prefix "C-SPC")
 
     (ddav/leader-keys
+      "a" '(org-agenda :which-key "agenda")
       "b" '(nil :which-key "buffer")
       "b b" '(consult-buffer :which-key "list buffers")
       "b l" '(list-buffers :which-key "list buffers")
       "b k" '(kill-buffer :which-key "kill buffer")
       "d" '(dired :which-key "dired")
       "g" '(magit-status :which-key "magit")
+      "h" '(nil :which-key "help")
+      "h f" '(helpful-callable :which-key "function help")
+      "h k" '(helpful-callable :which-key "keybind help")
+      "h v" '(helpful-callable :which-key "variable help")
       "h r" '(ddav/reload-config :which-key "reload configuration")
       "h u" '(auto-package-update-now :which-key "update packages")
       "n" '(nil :which-key "org-roam")
@@ -491,40 +496,137 @@ Here we define the hook to enable some configs when =org-mode= starts up.
 Main =org-mode= configuration through =use-package=
 
 #+begin_src emacs-lisp
-    (use-package org
-      :hook (org-mode . ddav/org-mode-setup)
-      :config
-      (dolist (face '((org-level-1 . 1.4)
-                      (org-level-2 . 1.2)
-                      (org-level-3 . 1.1)
-                      (org-level-4 . 1.05)
-                      (org-level-5 . 1.0)
-                      (org-level-6 . 1.0)
-                      (org-level-7 . 1.0)
-                      (org-level-8 . 1.0)))
-        (set-face-attribute (car face) nil :font "Source Sans Pro" :weight 'regular :height (cdr face)))
+  (use-package org
+    :hook (org-mode . ddav/org-mode-setup)
+    :config
+    (dolist (face '((org-level-1 . 1.4)
+                    (org-level-2 . 1.2)
+                    (org-level-3 . 1.1)
+                    (org-level-4 . 1.05)
+                    (org-level-5 . 1.0)
+                    (org-level-6 . 1.0)
+                    (org-level-7 . 1.0)
+                    (org-level-8 . 1.0)))
+      (set-face-attribute (car face) nil :font "Source Sans Pro" :weight 'regular :height (cdr face)))
 
 
-      (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
-      (set-face-attribute 'org-code nil :inherit '(shadow fixed-pitch))
-      (set-face-attribute 'org-table nil :inherit '(shadow fixed-pitch))
-                                            ; (set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))
-      (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
-      (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
-      (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
-      (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
+    (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+    (set-face-attribute 'org-code nil :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-table nil :inherit '(shadow fixed-pitch))
+                                          ; (set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))
+    (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
 
-      :custom
-      (org-ellipsis " ◂")
-      (org-hide-emphasis-markers t))
+    ;(setq org-agenda-files
+    ;      '("~/org/journal"
+    ;        "~/org/zk"))
+
+    (setq org-todo-keywords
+          '((sequence "TODO(t)" "NEXT(n)" "IN PROGRESS(p)" "|" "DONE(d!)")))
+
+    ;; Use "agenda" tag to mark org-roam files to be parsed bt agenda. For this
+    ;; reason we don't want the "agenda" tag to be inherited from all todo items.
+    (add-to-list 'org-tags-exclude-from-inheritance "agenda")
+    :custom
+    (org-ellipsis " ◂")
+    (org-hide-emphasis-markers t))
 #+end_src
 
-Nicer heading bullets:
+Add some automation to have org-roam work nicely with org-agenda:
+
+Taken from https://d12frosted.io/posts/2021-01-16-task-management-with-roam-vol5.html
 
 #+begin_src emacs-lisp
-  (use-package org-bullets
-    :after org
-    :hook (org-mode . org-bullets-mode))
+  (use-package vulpea
+    :init)
+
+  (defun ddav/org-roam-node-has-todo ()
+    "Return non-nil if current buffer has a TODO entry"
+    (org-element-map
+     (org-element-parse-buffer 'headline)
+     'headline
+     (lambda (h)
+       (eq (org-element-property :todo-type h)
+           'todo))
+     nil 'first-match))
+
+  (defun ddav/buffer-is-a-note ()
+      "Return non nil if the current buffer is a note."
+    (and buffer-file-name
+         (string-prefix-p
+          (expand-file-name (file-name-as-directory org-roam-directory))
+          (file-name-directory buffer-file-name))))
+
+  (defun ddav/org-roam-node-update-agenda-tag ()
+      "Update agenda tag in current buffer."
+    (when (and (not (active-minibuffer-window))
+               (ddav/buffer-is-a-note))
+      (save-excursion
+        (goto-char (point-min))
+        (let* ((tags (vulpea-buffer-tags-get))
+               (original-tags tags))
+          (if (ddav/org-roam-node-has-todo)
+              (setq tags (cons "agenda" tags))
+            (setq tags (remove "agenda" tags)))
+
+          ;; cleanup duplicates
+          (setq tags (seq-uniq tags))
+
+          ;; update tags if changed
+          (when (or (seq-difference tags original-tags)
+                    (seq-difference original-tags tags))
+            (apply #'vulpea-buffer-tags-set tags))))))
+
+  (add-hook 'find-file-hook #'ddav/org-roam-node-update-agenda-tag)
+  (add-hook 'before-save-hook #'ddav/org-roam-node-update-agenda-tag)
+
+  (defun ddav/org-agenda-query-files ()
+    "Return a list of org-roam nodes containing the 'agenda' tag."
+    (message "Query agenda files")
+    (seq-uniq
+     (seq-map
+      #'car
+      (org-roam-db-query
+       [:select [nodes:file]
+        :from tags
+        :left-join nodes
+        :on (= tags:node-id nodes:id)
+        :where (like tag (quote "%\"agenda\"%"))]))))
+
+
+  (defun ddav/org-agenda-files-update (&rest _)
+    "Update value og org-agenda-files"
+    (setq org-agenda-files (ddav/org-agenda-query-files)))
+
+  (advice-add 'org-agenda :before #'ddav/org-agenda-files-update)
+  (advice-add 'org-todo-list :before #'ddav/org-agenda-files-update)
+#+end_src
+
+Display note title in agenda instead of filename
+
+#+begin_src emacs-lisp
+  (defun ddav/org-agenda-category ()
+    "Get category of item at point for agenda."
+
+    (let* ((file-name (when buffer-file-name
+                        (file-name-sans-extension
+                         (file-name-nondirectory buffer-file-name))))
+           (title (vulpea-buffer-prop-get "title"))
+           (category (org-get-category)))
+      (or (if (and
+               title
+               (string-equal category file-name))
+              title
+            category)
+          "")))
+
+  (setq org-agenda-prefix-format
+        '((agenda . " %i %-12(ddav/org-agenda-category)%?-12t% s")
+          (todo . " %i %-12(ddav/org-agenda-category) ")
+          (tags . " %i %-12(ddav/org-agenda-category) ")
+          (search . " %i %-12(ddav/org-agenda-category) ")))
 #+end_src
 
 ** Org appear
@@ -561,6 +663,8 @@ Org roam is a package that implements Zettlekasten note taking method.
 
 #+begin_src emacs-lisp
   (use-package org-roam
+    :init
+    (require 'org-roam-dailies) ; Ensure dailies keymap is available
     :bind
     (("C-c n l" . org-roam-buffer-toggle)
     ("C-c n f" . org-roam-node-find)
@@ -570,7 +674,6 @@ Org roam is a package that implements Zettlekasten note taking method.
     :config
     (org-roam-setup)
     (org-roam-db-autosync-mode)
-    (require 'org-roam-dailies) ; Ensure dailies keymap is available
     :custom
     (org-roam-directory "~/org/zk")
     (org-roam-dailies-directory "../journal") ; relative to org-roam-directory
@@ -581,8 +684,13 @@ Org roam is a package that implements Zettlekasten note taking method.
         :unnarrowed t)
        ("b" "BCP21" plain
         "%?"
-        :if-new (file+head "%<%Y%m%d%h%m%S>-${slug}.org" "#+title: ${title}\n#+filetags: work bcp21")
-        :unnarrowed t))))
+        :if-new (file+head "%<%Y%m%d%h%m%S>-${slug}.org" "#+title: ${title}\n#+filetags: :@work:bcp21:\n")
+        :unnarrowed t)))
+
+    (org-roam-dailies-capture-templates
+     '(("d" "default" entry
+        "* TODO %?"
+        :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n#+filetags :agenda:\n")))))
 #+end_src
 
 
