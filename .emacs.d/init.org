@@ -677,6 +677,10 @@ Org roam is a package that implements Zettlekasten note taking method.
     :custom
     (org-roam-directory "~/org/zk")
     (org-roam-dailies-directory "../journal") ; relative to org-roam-directory
+
+    ;; Display tags in org-roam-node-find
+    (org-roam-node-display-template (concat "${title} "
+                                            (propertize "${tags:200}" 'face 'org-tag)))
     (org-roam-capture-templates
      '(("d" "default" plain
         "%?"
@@ -692,7 +696,6 @@ Org roam is a package that implements Zettlekasten note taking method.
         "* TODO %?"
         :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n#+filetags :agenda:\n")))))
 #+end_src
-
 
 * File management
 
